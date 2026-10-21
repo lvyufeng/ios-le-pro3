@@ -286,16 +286,29 @@ static void reserved_node(const char *path, const node_props_t *props, void *ctx
         return;
     if (!props->reg_len)
         return;
+
+    /* The region's own #address-cells/#size-cells are inherited from
+     * /reserved-memory, which the node's cells were recorded against. */
+    uint64_t base, size;
+    if (props->addr_cells >= 2) {
+        base = props->reg[0] << 32 | props->reg[1];
+        size = props->size_cells >= 2 ? (props->reg[2] << 32 | props->reg[3])
+                                      : props->reg[2];
+    } else {
+        base = props->reg[0];
+        size = props->reg[1];
+    }
+    if (!size)
+        return;
+
     c->f->reserved_count++;
     if (props->has_nomap) {
-        uint64_t size;
-        if (props->addr_cells >= 2)
-            size = props->size_cells >= 2
-                       ? (props->reg[2] << 32 | props->reg[3])
-                       : props->reg[2];
-        else
-            size = props->reg[1];
         c->f->reserved_nomap_bytes += size;
+        if (c->f->resv_count < FDT_MAX_RESV) {
+            c->f->resv[c->f->resv_count].base = base;
+            c->f->resv[c->f->resv_count].size = size;
+            c->f->resv_count++;
+        }
     }
 }
 
@@ -325,6 +338,7 @@ void fdt_read_reserved(fdt_info_t *f)
 {
     res_ctx_t c = {f};
     f->reserved_count = 0;
+    f->resv_count = 0;
     f->reserved_nomap_bytes = 0;
     collect(f, reserved_node, &c);
 }
