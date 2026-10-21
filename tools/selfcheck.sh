@@ -31,6 +31,28 @@ for o in probe/out/*.o; do
 done
 
 echo
+echo "== bss extent covers the DMA buffers"
+python3 - <<'PY2'
+import sys
+sys.path.insert(0, 'tools')
+from flatten import parse_object, assign_addresses, build_symbol_table
+from pathlib import Path
+objs = ['probe/out/' + n + '.o' for n in ('start', 'mmu4k', 'zl1_probe', 'ufs')]
+allsec, parsed = [], []
+for p in objs:
+    secs, syms = parse_object(Path(p))
+    allsec.extend(secs)
+    parsed.append((p, secs, syms))
+assign_addresses(allsec)
+a = build_symbol_table(parsed)
+b0, b1 = a['_bss_begin'], a['_bss_end']
+for name in ('_g_utrl', '_g_ucd', '_g_dma'):
+    v = a[name]
+    assert b0 <= v < b1, f'{name} at {v:#x} outside [{b0:#x},{b1:#x})'
+    print(f'  ok   {name} {v:#x} inside cleared range')
+PY2
+
+echo
 echo "== Image header"
 python3 - <<'PY'
 import struct, sys
