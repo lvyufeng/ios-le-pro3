@@ -208,9 +208,6 @@ _stack_top:
 /* ------------------------------------------------------------------ */
     .section __DATA,__bss
     .p2align 3
-    .globl _bss_begin
-_bss_begin:
-    .quad   0
     .globl _g_fault_count
 _g_fault_count:
     .quad   0
@@ -220,9 +217,7 @@ _g_fault_last_far:
     .globl _g_fault_last_esr
 _g_fault_last_esr:
     .quad   0
-    .globl _bss_end
-_bss_end:
-    .quad   0
+
 
 
 /* ------------------------------------------------------------------ */
@@ -240,3 +235,20 @@ _bss_end:
     .globl _image_end
 _image_end:
     .quad   0
+
+/* ------------------------------------------------------------------ */
+/* Bss extent markers                                                 */
+/* ------------------------------------------------------------------ */
+/* .bss is spread across several objects, so a marker inside start.S
+ * would only cover its own slice. flatten.py lays these two sections
+ * immediately before and after every __bss/__common section, which makes
+ * [_bss_begin, _bss_end) the true extent that entry zeroes. */
+    .section __DATA,__bss_begin
+    .p2align 3
+    .globl _bss_begin
+_bss_begin:
+
+    .section __DATA,__bss_end
+    .p2align 3
+    .globl _bss_end
+_bss_end:
