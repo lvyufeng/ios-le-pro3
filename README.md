@@ -54,10 +54,15 @@ MMU, and a handful of peripheral identification registers, draws the whole
 report on the splash framebuffer, and spins. It writes no partition.
 
 ```sh
-probe/build.sh                                   # -> probe/out/Image
-python3 tools/mkboot.py probe/out/Image probe/out/boot.img
+tools/selfcheck.sh                               # clean build + all header checks
 fastboot boot probe/out/boot.img                 # nothing is flashed
 ```
+
+`tools/selfcheck.sh` builds the Image and the boot image from scratch and
+verifies the qcom boot header, the absence of GOT relocations and the boot
+image layout. It is the same set of checks the GitHub Actions workflow
+performs; the workflow is written but not yet pushed, because uploading
+files under `.github/workflows/` needs a token with the `workflow` scope.
 
 Read the result off the screen and file it with `tools/zl1-log.py`, which
 turns a photo or pasted text into a diffable report. Every value in
