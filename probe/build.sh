@@ -40,7 +40,7 @@ CFLAGS="$TARGET_FLAGS -ffreestanding -fno-builtin -fno-stack-protector
         -mstrict-align -mno-outline-atomics -Wall -Wextra -Werror -I."
 
 echo "CC = $CC"
-for src in start.S mmu4k.c zl1_probe.c; do
+for src in start.S mmu4k.c zl1_probe.c ufs.c; do
     base=$(basename "$src")
     obj="$OUT/${base%.*}.o"
     "$CC" $CFLAGS -c "$src" -o "$obj"
@@ -59,7 +59,7 @@ if command -v llvm-objdump >/dev/null 2>&1 && command -v xcrun >/dev/null 2>&1; 
 fi
 
 python3 "$ROOT/tools/flatten.py" "$OUT/Image" \
-    "$OUT/start.o" "$OUT/mmu4k.o" "$OUT/zl1_probe.o"
+    "$OUT/start.o" "$OUT/mmu4k.o" "$OUT/zl1_probe.o" "$OUT/ufs.o"
 
 python3 "$ROOT/tools/mkboot.py" "$OUT/Image" "$OUT/boot.img"
 
