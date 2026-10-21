@@ -1,8 +1,12 @@
 # zl1 hardware facts
 
-Every row cites where the value came from. **Only rows marked `verified`
-have been read off a phone.** Nothing in this project may treat an
-unverified value as a fact in code without a comment saying so.
+Every row cites where the value came from. **Rows marked `verified` were
+read off the actual phone (LEX727, serial 33e80afe) on 2026-10-21 through
+TWRP's adb shell.** Nothing in this project may treat an unverified value
+as a fact in code without a comment saying so.
+
+Where the device disagreed with the device trees, the device wins and the
+row says so.
 
 Sources used:
 
@@ -19,7 +23,7 @@ Sources used:
 
 | Item | Value | Source | Status |
 |---|---|---|---|
-| SoC | MSM8996 Pro (Snapdragon 821) | LIN `TARGET_KERNEL_SOURCE` | verified by name |
+| SoC | MSM8996 Pro (Snapdragon 821) | LIN `TARGET_KERNEL_SOURCE` | dt |
 | Cores | 2x Kryo (big) + 2x Kryo (little), 4 total | DT-LE cpu nodes | dt |
 | Little MPIDR | `0x000`, `0x100` | DT-LE `cpu@0`, `cpu@100` | dt |
 | Big MPIDR | `0x200`, `0x300` | DT-8996 `cpu@200` | dt |
