@@ -41,10 +41,14 @@ in the same order the S8 and sweet ports were:
 ```
 hardware/     verified values from device trees and board configs, with sources
 probe/        read-only fact collector that runs on the phone  <- done
-shim/         the XNU loader (later)
+shim/         XNU loader: FDT reader done and host-tested; loader to follow
 tools/        host-side offline tools
 xnu/patches/  the XNU patch series (later)
 ```
+
+Parts of the shim that have no hardware dependency (currently the FDT
+reader) are compiled unmodified for the host and tested against a
+generated DTB, so they are proven before the phone is involved.
 
 ## The probe
 
