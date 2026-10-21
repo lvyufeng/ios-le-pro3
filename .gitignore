@@ -1,0 +1,21 @@
+# Build outputs
+probe/out/
+shim/out/
+xnu/out/
+out/
+
+# Device dumps, logs and anything that identifies the owner
+hardware/dumps/*
+!hardware/dumps/.gitkeep
+*.bin
+*.img
+!**/expected/*.img
+
+# Apple's codes and binaries are never committed
+*.ipsw
+*.dmg
+*.im4p
+*.kernelcache
+*.kcalloc
+.ds_store
+.DS_Store
