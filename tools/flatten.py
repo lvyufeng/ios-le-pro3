@@ -141,8 +141,12 @@ def assign_addresses(sections):
     """Lay sections out by kind, preserving order within each kind."""
     # __image_end is deliberately last: mmu4k.c treats [_start, _image_end)
     # as the executable range, so everything else must precede it.
-    order = ["__text", "__const", "__cstring", "__rodata",
-             "__data", "__bss", "__common", "__image_end"]
+    # __bss_begin/__bss_end bracket every zero-initialised section so
+    # entry can clear exactly the right range; __image_end is last because
+    # mmu4k.c treats [_start, _image_end) as the executable range.
+    order = ["__text", "__const", "__cstring", "__rodata", "__data",
+             "__bss_begin", "__bss", "__common", "__bss_end",
+             "__image_end"]
     pos = 0
     laid = []
     for kind in order:
@@ -285,6 +289,22 @@ def main():
             sec["data"][start:start + sec["size"]]
 
     sym_addr = build_symbol_table(parsed2)
+
+    # entry zeroes [_bss_begin, _bss_end). If that range does not contain
+    # every zero-initialised byte, .bss silently keeps whatever the
+    # bootloader left in RAM - the kind of bug that shows up as a UFS DMA
+    # command reading garbage an hour later. Check it here instead.
+    for name in ("_bss_begin", "_bss_end"):
+        if name not in sym_addr:
+            raise FlattenError(f"{name} is not defined; start.S must export it")
+    b0, b1 = sym_addr["_bss_begin"], sym_addr["_bss_end"]
+    for sec in laid:
+        if sec["sect"] in ("__bss", "__common") and sec["size"]:
+            if sec["new_addr"] < b0 or sec["new_addr"] + sec["size"] > b1:
+                raise FlattenError(
+                    f"{sec['sect']} at {sec['new_addr']:#x} is outside the "
+                    f"cleared range [{b0:#x}, {b1:#x})")
+
     relocate(image, laid, parsed2, sym_addr)
 
     # Verify the arm64 Image header the bootloader insists on.
