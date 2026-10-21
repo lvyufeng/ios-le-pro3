@@ -21,6 +21,10 @@ rm -rf probe/out
 ./probe/build.sh
 
 echo
+echo "== FDT reader (host test)"
+./shim/test_fdt.sh
+
+echo
 echo "== no GOT references"
 for o in probe/out/*.o; do
     if xcrun llvm-objdump --macho --reloc "$o" 2>/dev/null | grep -q GOT; then
