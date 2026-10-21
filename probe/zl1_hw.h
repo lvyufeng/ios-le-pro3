@@ -60,6 +60,9 @@
 /* [OBS] The S8 port found CNTFRQ_EL0 == 0 at handoff and used the DT value
  *       instead. 8996 boots at 19.2 MHz in most vendor DTs; the probe prints
  *       whatever CNTFRQ_EL0 actually holds so we keep the reading, not a guess.
+ *       Still unverified on zl1: TWRP's kernel has already programmed the
+ *       counter by the time adb is reachable, so the host cannot see the
+ *       bootloader handoff value.
  */
 #define ZL1_TIMER_FALLBACK_HZ  19200000u
 
@@ -74,9 +77,18 @@
  */
 #define ZL1_UFS_BASE           0x00624000u
 #define ZL1_UFS_SIZE           0x00002500u
-/* [DT] ufsphy: phy@627000, compatible "qcom,msm8996-qmp-ufs-phy" (1 lane x2?) */
+/* [DT] ufsphy: phy@627000, compatible "qcom,msm8996-qmp-ufs-phy".
+ * [VERIFIED 2026-10-21] /proc/iomem on the phone:
+ *     00624000-006264ff : /soc/ufshc@624000
+ *     00627000-00627da7 : phy_mem
+ *     00630000-00637fff : /soc/ufsice@630000
+ * The inline-crypto engine at 0x630000 is new to this port. The probe must
+ * not touch it, but the XNU UFS driver will have to coexist with it.
+ */
 #define ZL1_UFS_PHY_BASE       0x00627000u
 #define ZL1_UFS_PHY_SIZE       0x00001000u
+#define ZL1_UFSICE_BASE        0x00630000u
+#define ZL1_UFSICE_SIZE        0x00008000u
 
 /* UFSHCI standard register offsets (JEDEC UFS 2.0 spec, section 6). These
  * are the same offsets sweet uses; repeated here so the probe does not
@@ -134,9 +146,18 @@
 #define ZL1_RESERVED_PERIPH_SZ 0x02d00000u
 
 /* [CFG] LineageOS msm8996-common BoardConfig: BOARD_KERNEL_BASE 0x80000000,
- *       page size 4096. For a 4 GiB device the high bank starts at
- *       0x1_00000000; for 6 GiB devices there is a second bank too. NEVER
- *       hardcode the bank end in code - read the FDT.
+ *       page size 4096.
+ *
+ * [VERIFIED 2026-10-21, LEX727] The real memory map is TWO banks, not one
+ * high bank as originally assumed here:
+ *
+ *   bank 0  0x0000000080000000 + 0x0000000080000000  (2.00 GiB)
+ *   bank 1  0x0000000100000000 + 0x000000007e550000  (1.97 GiB)
+ *
+ * read from /proc/device-tree/memory/reg and confirmed by /proc/iomem
+ * ("80000000-857fffff System RAM", "91600000-17e54ffff System RAM").
+ * Code must still read the FDT rather than trust these numbers, but the
+ * two-bank shape is now a fact and the page-table plan has to allow for it.
  */
 #define ZL1_KERNEL_BASE        0x80000000u
 #define ZL1_KERNEL_PAGE_SIZE   4096u
