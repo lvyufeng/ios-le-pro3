@@ -5,6 +5,42 @@ a source** from **planned**. Only the first may be used as a claim.
 
 ---
 
+## 2026-10-21 (late night) — FIRST HARDWARE CONTACT
+
+The phone was connected to the Mac the whole time (an earlier "not
+connected" conclusion was wrong: `system_profiler SPUSBDataType` returns
+nothing on this host, but `ioreg -p IOUSB` shows `LEX727@03100000`).
+Platform-tools were installed to /tmp and adb reached TWRP as serial
+33e80afe.
+
+Full capture: `hardware/observations/2026-10-21-LEX727-twrp.md`.
+The five things that change the plan:
+
+1. **Two memory banks**, not one: 2.00 GiB at 0x80000000 and 1.97 GiB at
+   0x100000000. The "put everything in the high bank" idea is dead; the
+   loader must choose a bank from the FDT and the page tables need two L3
+   tables if anything crosses.
+2. **No LSE.** `/proc/cpuinfo` Features has no `atomics` and reports
+   `CPU architecture: 8`. The S8 workaround applies. This was the biggest
+   open question.
+3. **Splash at 0x83401000 confirmed** by the live device tree, region
+   0x023ff000. fb0 reports 1080x3840 virtual (double buffered), 32 bpp.
+4. **Touch is Synaptics at 0x20** on i2c-12, with the FocalTech at 0x38
+   also present on the same bus. Probe 0x20 first.
+5. **UFS has an inline-crypto engine at 0x630000** that the device trees
+   did not mention. The probe must not touch it; the XNU driver will have
+   to coexist with it.
+
+Also captured: full partition list, userdata geometry (first_lba 602688,
+last 51666903), hardware revision DVT1, panel s6d6fa1 1080p video mode,
+bootloader unlocked (verifiedbootstate=orange).
+
+Still only answerable by booting the probe: CNTFRQ at EL1 entry, HCE/HCS
+before a kernel touches the host, whether this LK accepts our flat Image,
+and whether it sets linux,initrd-start/end.
+
+---
+
 ## 2026-10-21 (night) — payload loader
 
 ### Built
