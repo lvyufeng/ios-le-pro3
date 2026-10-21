@@ -385,6 +385,10 @@ void zl1_probe_main(void)
         kvd("mem_low_mib", low >> 20);
         kvd("mem_high_mib", high >> 20);
         kvd("mem_total_mib", total >> 20);
+        /* [VERIFIED on LEX727] the real map is two banks: 2 GiB at
+         * 0x80000000 and ~1.97 GiB at 0x100000000. If the totals below do
+         * not add up to ~4064 MiB the bootloader handed us something
+         * different from what TWRP sees, which is itself the finding. */
     } else {
         con_str("  no usable DTB: memory unknown\n");
     }
