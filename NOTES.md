@@ -5,6 +5,43 @@ a source** from **planned**. Only the first may be used as a claim.
 
 ---
 
+## 2026-10-21 (night) — payload loader
+
+### Built
+
+- `shim/loader.{h,c}`: the iBoot stand-in. Opens the live FDT, finds the
+  payload in the initrd, checks every destination against the memory map
+  and the no-map carve-outs, copies the segments, places the ADT and
+  `boot_args` behind the kernel and jumps to the entry point with the MMU
+  off, `x0 = boot_args` physical.
+- `shim/loader_place.c`: the placement check, split out so it compiles for
+  the host.
+- `shim/loader_range_test.c`: 11 cases against a zl1-shaped map, including
+  straddling both carve-outs, past the end of DRAM, the exact last page and
+  a base+len overflow.
+
+Differences from sweet that this file records:
+
+- 4 KiB page for sizing `boot_args`, not 16 KiB.
+- The framebuffer is passed in, because the splash address is a bootloader
+  property on this port, not a compile-time constant.
+- Destinations are validated against the live FDT instead of being a fixed
+  physical base. sweet can use a fixed base on its board; zl1 has the modem
+  and firmware regions in the middle of the same bank.
+
+`boot_args` layout is asserted at compile time: `Video` at 40,
+`CommandLine` at 108, size 736. If a future edit breaks those, the jump
+would hand XNU garbage - the build fails instead.
+
+### Still blocked on hardware
+
+`linux,initrd-start`/`initrd-end`. The loader reads them from `/chosen`,
+so the boot image tail has to put the payload where the bootloader will
+report it. Whether this LK populates those properties for a non-Android
+image is unknown, and is the first thing the shim stage must print.
+
+---
+
 ## 2026-10-21 (evening) — shim FDT reader, host-tested
 
 ### Built
