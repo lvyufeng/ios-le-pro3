@@ -16,5 +16,10 @@ python3 ../tools/mkfdt.py "$OUT/zl1-test.dtb"
 
 cc -std=c99 -Wall -Wextra -Werror -O1 -I. \
    fdt_read.c fdt_read_test.c -o "$OUT/fdt_read_test"
-
 "$OUT/fdt_read_test" "$OUT/zl1-test.dtb"
+
+# loader_place.c has no device dependency, so its placement rules are proven
+# here rather than discovered when a kernel lands on the modem.
+cc -std=c99 -Wall -Wextra -Werror -O1 -I. \
+   loader_place.c loader_range_test.c -o "$OUT/loader_range_test"
+"$OUT/loader_range_test"
