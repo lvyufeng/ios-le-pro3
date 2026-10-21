@@ -26,6 +26,7 @@
 
 #define FDT_MAX_DEPTH  32
 #define FDT_MAX_MEM    8
+#define FDT_MAX_RESV   32
 
 typedef struct {
     uint64_t base;
@@ -44,9 +45,13 @@ typedef struct {
     fdt_mem_t mem[FDT_MAX_MEM];
     int mem_count;
 
-    /* Filled by fdt_read_reserved(): total bytes under no-map. */
-    uint64_t reserved_nomap_bytes;
+    /* Filled by fdt_read_reserved(). no-map regions are the ones an OS
+     * must never use; their addresses are kept so the loader can refuse to
+     * place anything on top of one. */
+    fdt_mem_t resv[FDT_MAX_RESV];
     int reserved_count;
+    int resv_count;
+    uint64_t reserved_nomap_bytes;
 
     /* Filled by fdt_read_cpus(): the MPIDRs listed under /cpus. */
     uint64_t mpidr[8];
