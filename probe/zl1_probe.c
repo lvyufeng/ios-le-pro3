@@ -24,6 +24,7 @@
 
 /* probe/mmu4k.c */
 int zl1_mmu4k_enable(void);
+void zl1_ufs_probe(void);
 void zl1_mmu4k_disable(void);
 uint64_t zl1_mmu4k_tcr(void);
 uint64_t zl1_mmu4k_sctlr(void);
@@ -141,6 +142,11 @@ static void con_dec(uint64_t v)
         con_putc(b[n]);
 }
 
+/* Exported for probe/ufs.c. They are declared there rather than in a header
+ * because ufs.c is the only other user and C has no need to be clever here. */
+void probe_out(const char *s) { con_str(s); }
+void probe_dec(uint64_t v) { con_dec(v); }
+
 static void kv(const char *k, uint64_t v)
 {
     con_str(k);
@@ -164,6 +170,10 @@ static void kvs(const char *k, const char *v)
     con_str(v);
     con_putc('\n');
 }
+
+/* Exported for probe/ufs.c, after the static helpers they wrap. */
+void probe_kv(const char *k, uint64_t v) { kv(k, v); }
+void probe_kvd(const char *k, uint64_t v) { kvd(k, v); }
 
 /* ---------------------------------------------------------------- */
 /* System registers                                                 */
@@ -380,6 +390,19 @@ void zl1_probe_main(void)
     }
     con_putc('\n');
 
+    /* Full read-only UFS walk lives in probe/ufs.c: registers, TEST UNIT
+     * READY, READ CAPACITY and the GPT partition list. It stops at the first
+     * stage that does not work and says so, which is the whole point - the
+     * answer decides whether storage bring-up is days or weeks.
+     *
+     * This runs BEFORE the MMU test on purpose. With the MMU off every
+     * access is Device memory, so the command/PRDT structures the UFS host
+     * reads by DMA are coherent without any cache maintenance. Running it
+     * after zl1_mmu4k_enable() would require clean+invalidate around every
+     * transfer, and getting that wrong corrupts the DMA silently. */
+    zl1_ufs_probe();
+    con_putc('\n');
+
     con_str("-- MMU 4K identity map --\n");
     const int mrc = zl1_mmu4k_enable();
     kvd("mmu4k_rc", (uint64_t)(int64_t)mrc);
@@ -391,18 +414,6 @@ void zl1_probe_main(void)
     } else {
         kvs("mmu", "not enabled, see rc");
     }
-    con_putc('\n');
-
-    con_str("-- UFS host 0x624000 --\n");
-    kv("cap", mmio_rd(ZL1_UFS_BASE + UFSHCI_CAP));
-    kv("ver", mmio_rd(ZL1_UFS_BASE + UFSHCI_VER));
-    kv("hcs", mmio_rd(ZL1_UFS_BASE + UFSHCI_HCS));
-    kv("hce", mmio_rd(ZL1_UFS_BASE + UFSHCI_HCE));
-    kv("utrlba", (uint64_t)mmio_rd(ZL1_UFS_BASE + UFSHCI_UTRLBAU) << 32 |
-                     mmio_rd(ZL1_UFS_BASE + UFSHCI_UTRLBA));
-    kv("utrldbr", mmio_rd(ZL1_UFS_BASE + UFSHCI_UTRLDBR));
-    kv("utrlrsr", mmio_rd(ZL1_UFS_BASE + UFSHCI_UTRLRSR));
-    kv("ufs_phy_0x627000", mmio_rd(ZL1_UFS_PHY_BASE));
     con_putc('\n');
 
     con_str("-- GICv3 0x9bc0000 / 0x9c00000 --\n");
