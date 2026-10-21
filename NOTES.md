@@ -5,6 +5,41 @@ a source** from **planned**. Only the first may be used as a claim.
 
 ---
 
+## 2026-10-21 (later) — UFS probe added
+
+### Built
+
+`probe/ufs.c`: the full read-only UFS walk, adapted from `ios-sweet`'s
+`shim/ufs.c` to the 8996 base address. Registers, TEST UNIT READY,
+READ CAPACITY(10), READ(10) of LBA 0/1, then every GPT entry >= 64 MiB.
+Stops at the first failing stage and names it. No SCSI WRITE exists in the
+file.
+
+### Two ordering decisions, both to avoid silent corruption
+
+- **UFS runs before the MMU test.** With the MMU off all memory is Device,
+  so the UTRD/UCD/PRDT structures the host reads by DMA are coherent with no
+  cache maintenance. Running it after `zl1_mmu4k_enable()` would need
+  clean+invalidate around every transfer.
+- **`[_bss_begin, _bss_end)` now brackets every zero-initialised section.**
+  Before this, `start.S` owned bss markers, so they covered only its own
+  slice and the UFS DMA buffers at `0xe000` sat outside the cleared range.
+  `flatten.py` now fails the build if a `__bss` section falls outside the
+  markers, and `selfcheck.sh` asserts the three DMA symbols are inside.
+
+### Bug found
+
+8. `.bss` is spread over four sections across three objects; the clear loop
+   in `entry` only covered the first 0x20 bytes.
+
+### Still unverified
+
+Whether `HCE`/`HCS` are actually set when the probe runs. That is the whole
+question this commit exists to answer, and it can only be answered on the
+phone.
+
+---
+
 ## 2026-10-21 — repository created, probe built
 
 ### Observed on hardware
