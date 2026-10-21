@@ -5,6 +5,36 @@ a source** from **planned**. Only the first may be used as a claim.
 
 ---
 
+## 2026-10-21 (evening) — shim FDT reader, host-tested
+
+### Built
+
+`shim/fdt_read.{h,c}`: a bounds-checked FDT walk for the shim. The probe's
+parser only needed /memory; the shim needs /memory banks, /reserved-memory
+no-map totals (so the XNU payload never lands on the modem carve-out), the
+/cpus MPIDRs, and /chosen bootargs.
+
+`tools/mkfdt.py`: builds a zl1-shaped DTB in pure Python because `dtc` is
+not installed here and pulling in libfdt would make the test depend on the
+thing under test.
+
+`shim/fdt_read_test.c` + `shim/test_fdt.sh`: compiles the reader
+**unmodified for the host** and checks it against that DTB, including two
+negative cases (truncated totalsize, bad magic). Wired into selfcheck.
+
+### Bug found
+
+9. The walk built paths without a leading slash (`memory` instead of
+   `/memory`), so every name check missed and `fdt_read_memory` returned 0
+   on a perfectly good tree. The host test caught it in seconds; on the
+   phone it would have looked like "the bootloader gave us a bad DTB".
+
+This is the argument for host-testing the shim's pure logic: the FDT reader
+has no hardware dependency at all, and it is the piece every later stage
+reads memory from.
+
+---
+
 ## 2026-10-21 (later) — UFS probe added
 
 ### Built
